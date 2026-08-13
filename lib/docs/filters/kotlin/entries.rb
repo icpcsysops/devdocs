@@ -1,25 +1,27 @@
 module Docs
   class Kotlin
     class EntriesFilter < Docs::EntriesFilter
+      # Breadcrumbs are empty on the module page and could be short on any page Dokka
+      # renders differently, so never index a blank name or type: Entry rejects both.
       def get_name
-        if api_page?
-          # ['kotlin-stdlib', 'kotlin.collections', 'List', 'size'] => 'kotlin.collections.List.size'
-          api_breadcrumbs[1..-1].join('.')
-        else
-          node = at_css('h1') || at_css('h2')
-          node && node.content.strip.squish
-        end
+        return heading_text unless api_page?
+
+        # ['kotlin-stdlib', 'kotlin.collections', 'List', 'size'] => 'kotlin.collections.List.size'
+        api_breadcrumbs.drop(1).join('.').presence || heading_text
       end
 
       def get_type
-        if api_page?
-          api_breadcrumbs[1]
-        else
-          doc_breadcrumbs.first.presence || 'Language guide'
-        end
+        return doc_breadcrumbs.first.presence || 'Language guide' unless api_page?
+
+        api_breadcrumbs[1].presence || api_breadcrumbs.first.presence || 'kotlin-stdlib'
       end
 
       private
+
+      def heading_text
+        node = at_css('h1') || at_css('h2')
+        node && node.content.strip.squish
+      end
 
       def api_page?
         subpath.start_with?('api')

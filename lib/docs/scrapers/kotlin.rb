@@ -29,6 +29,9 @@ module Docs
 
     options[:fix_urls] = ->(url) do
       url.sub! %r{/docs/reference/}, '/docs/'
+      # The guide links to the bare library directory, which is the same page as
+      # root_path; without this it gets indexed a second time under its own type.
+      url.sub! %r{(/api/core/(?:\d+\.\d+/)?kotlin-stdlib)/\z}, '\1/index.html'
       url
     end
 
@@ -86,11 +89,19 @@ module Docs
 
     # The guide's navigation is rendered client-side and the Dokka pages only link
     # to a handful of its pages, so seed the crawl from the sitemap instead.
+    # Memoized because Scraper#options and #initial_urls between them call this three
+    # times; without it the sitemap is fetched repeatedly and a transient failure
+    # would leave options[:only] disagreeing with the URLs actually being crawled.
     def initial_paths
       return super if self.class.version.present?
+      @initial_paths ||= guide_paths
+    end
 
+    private
+
+    def guide_paths
       response = Request.run(SITEMAP_URL)
-      return super unless response.success?
+      return [] unless response.success?
 
       paths = response.body.scan(%r{<loc>\s*https://kotlinlang\.org/(docs/[^\s<]+\.html)\s*</loc>}).flatten.uniq
       # :skip only filters crawled links, so it has to be applied to seeds by hand.
@@ -98,15 +109,15 @@ module Docs
       paths - self.class.options[:skip]
     end
 
-    private
-
     def process_response?(response)
       return false unless super
       response.body !~ /http-equiv="refresh"/i
     end
 
+    # Guide code listings are plain divs, so their newlines collapse unless they are
+    # turned into <pre>. code-collapse is the same thing behind a "show more" toggle.
     def parse(response)
-      response.body.gsub! %r{<div\ class="code-block" data-lang="([^"]+)"[^>]*>([\W\w]+?)</div>}, '<pre class="code" data-language="\1">\2</pre>'
+      response.body.gsub! %r{<div\ class="code-(?:block|collapse)" data-lang="([^"]+)"[^>]*>([\W\w]+?)</div>}, '<pre class="code" data-language="\1">\2</pre>'
       super
     end
   end
