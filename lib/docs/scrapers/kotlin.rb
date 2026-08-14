@@ -53,7 +53,7 @@ module Docs
       options[:only_patterns] << /\Adocs\// if path_version.nil?
     end
 
-    version do
+    version '2.4' do
       stdlib
       self.release = '2.4.10'
     end
