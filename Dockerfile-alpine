@@ -7,16 +7,18 @@ WORKDIR /devdocs
 
 COPY . /devdocs
 
-RUN apk --update add nodejs build-base libstdc++ gzip git zlib-dev libcurl && \
+RUN apk --update add nodejs build-base libstdc++ gzip git zlib-dev libcurl yaml-dev && \
     gem install bundler && \
     bundle config set path.system true && \
     bundle config set without 'test' && \
     bundle install && \
-    thor docs:download --all && \
+    thor docs:download c cpp openjdk@25 python@3.11 && \
+    thor docs:generate kotlin@2.4 --force && \
     thor assets:compile && \
-    apk del gzip build-base git zlib-dev && \
+    apk del gzip build-base git zlib-dev yaml-dev && \
     rm -rf /var/cache/apk/* /tmp ~/.gem /root/.bundle/cache \
     /usr/local/bundle/cache /usr/lib/node_modules
 
 EXPOSE 9292
-CMD rackup -o 0.0.0.0
+# allows Docker to pass OS signals (like SIGTERM) properly when stopping the container.
+CMD ["rackup", "-o", "0.0.0.0"]

@@ -1,31 +1,42 @@
 module Docs
   class Kotlin
     class EntriesFilter < Docs::EntriesFilter
+      # Breadcrumbs are empty on the module page and could be short on any page Dokka
+      # renders differently, so never index a blank name or type: Entry rejects both.
       def get_name
-        if subpath.start_with?('api')
-          breadcrumbs[1..-1].join('.')
-        else
-          node = (at_css('h1') || at_css('h2'))
-          return [breadcrumbs[1..], [node.content]].flatten.join(': ') unless node.nil?
-        end
+        return heading_text unless api_page?
+
+        # ['kotlin-stdlib', 'kotlin.collections', 'List', 'size'] => 'kotlin.collections.List.size'
+        api_breadcrumbs.drop(1).join('.').presence || heading_text
       end
 
       def get_type
-        if subpath.start_with?('api')
-          breadcrumbs[1]
-        else
-          breadcrumbs[0]
-        end
+        return doc_breadcrumbs.first.presence || 'Language guide' unless api_page?
+
+        api_breadcrumbs[1].presence || api_breadcrumbs.first.presence || 'kotlin-stdlib'
       end
 
       private
 
-      def breadcrumbs
-        if subpath.start_with?('api')
-          @breadcrumbs ||= css('.api-docs-breadcrumbs a').map(&:content).map(&:strip)
-        else
-          @breadcrumbs ||= doc.document.at_css('body')['data-breadcrumbs'].split('///')
-        end 
+      def heading_text
+        node = at_css('h1') || at_css('h2')
+        node && node.content.strip.squish
+      end
+
+      def api_page?
+        subpath.start_with?('api')
+      end
+
+      # Dokka renders the trailing crumb as a <span class="current"> rather than a link.
+      def api_breadcrumbs
+        @api_breadcrumbs ||= css('.breadcrumbs a, .breadcrumbs .current').map { |node| node.content.strip }
+      end
+
+      def doc_breadcrumbs
+        @doc_breadcrumbs ||= begin
+          body = doc.document.at_css('body')
+          body && body['data-breadcrumbs'].to_s.split('///').map(&:strip) || []
+        end
       end
     end
   end
