@@ -12,7 +12,13 @@ class App < Sinatra::Application
   Rack::Mime::MIME_TYPES['.webapp'] = 'application/x-web-app-manifest+json'
 
   configure do
-    use Rack::SslEnforcer, only_environments: ['production', 'test'], hsts: true, force_secure_cookies: false
+    # ===== ICPC SPECIFIC REQUIREMENTS =====
+    # 'production' dropped from only_environments: we serve plain HTTP over the
+    # contest LAN. Upstream 301-redirects http:// to https:// (dropping the port
+    # along the way, so the redirect target does not even exist) and pins the
+    # browser with Strict-Transport-Security max-age=1y includeSubDomains.
+    use Rack::SslEnforcer, only_environments: ['test'], hsts: true, force_secure_cookies: false
+    # ===== END ICPC SPECIFIC REQUIREMENTS =====
 
     set :sentry_dsn, ENV['SENTRY_DSN']
     set :protection, except: [:frame_options, :xss_header]
@@ -73,7 +79,14 @@ class App < Sinatra::Application
 
   configure :production do
     set :static, false
-    set :docs_origin, '//documents.devdocs.io'
+    # ===== ICPC SPECIFIC REQUIREMENTS =====
+    # Serve documentation from this instance rather than upstream's
+    # '//documents.devdocs.io' -- the contest network has no internet access.
+    # This value is baked into config.js when the image runs
+    # `thor assets:compile`, which forces RACK_ENV=production, so it has to be
+    # patched here rather than set at runtime.
+    set :docs_origin, File.join('', docs_prefix)
+    # ===== END ICPC SPECIFIC REQUIREMENTS =====
     set :csp, "default-src 'self' *; script-src 'self' 'nonce-devdocs' https://www.google-analytics.com https://secure.gaug.es https://*.jquery.com; font-src 'none'; style-src 'self' 'unsafe-inline' *; img-src 'self' * data:;"
 
     use Rack::ConditionalGet

@@ -322,6 +322,13 @@ page.track = function (fn) {
 };
 
 var track = function () {
+  // ===== ICPC SPECIFIC REQUIREMENTS =====
+  // Never track and never prompt for consent. Now that we run RACK_ENV=production
+  // the env check below no longer short-circuits, which would show contestants an
+  // analytics consent notification and, if accepted, attempt to reach external
+  // trackers that the contest network blocks.
+  return;
+  // ===== END ICPC SPECIFIC REQUIREMENTS =====
   if (app.config.env !== "production") {
     return;
   }
