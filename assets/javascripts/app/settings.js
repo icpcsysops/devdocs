@@ -31,7 +31,11 @@ app.Settings = class Settings {
   static defaults = {
     count: 0,
     hideDisabled: false,
-    hideIntro: false,
+    // ===== ICPC SPECIFIC REQUIREMENTS =====
+    // Contestants land straight in the docs; skip the "Welcome to DevDocs"
+    // intro/onboarding pane (upstream default: false).
+    hideIntro: true,
+    // ===== END ICPC SPECIFIC REQUIREMENTS =====
     news: 0,
     manualUpdate: false,
     schema: 1,
