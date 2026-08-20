@@ -1,4 +1,8 @@
-FROM ruby:4.0.5-alpine
+# ===== ICPC SPECIFIC REQUIREMENTS =====
+# Fully qualify the base image: we build with podman, which has no implicit
+# Docker Hub default and would otherwise prompt for a registry.
+FROM docker.io/ruby:4.0.5-alpine
+# ===== END ICPC SPECIFIC REQUIREMENTS =====
 
 ENV LANG=C.UTF-8
 ENV ENABLE_SERVICE_WORKER=true
